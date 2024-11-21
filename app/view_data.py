@@ -1,62 +1,51 @@
-# Import required libraries
-import streamlit as st           # Web application framework
-import pandas as pd              # Data manipulation and analysis
-import mysql.connector           # MySQL database connector
-from mysql.connector import errorcode  # Error handling for MySQL connections
+import streamlit as st
+import pandas as pd
+import mysql.connector
+from mysql.connector import errorcode
 
-# Cached function to load data from CSV
-# @st.cache_data ensures the data is loaded efficiently and cached
 @st.cache_data(max_entries=5)
 def load_data():
-    # Read the CSV file
     data = pd.read_csv("data/data.csv")
-    
-    # Select and return only the first 6 columns of the DataFrame
+    # Select the first five columns
     return data.iloc[:, :6]
 
-# Commented-out alternative function to load data directly from MySQL database
-# Kept as a reference for potential future database connectivity
+# Uncomment following code to read data from MySQL Database. Make appropriate changes to the config credentials.
 # @st.cache_data(max_entries=5)
 # def load_data(query: str):
-#     # Database configuration dictionary
+#     # Function to get data from MySQL
 #     config = {
 #         'host':'mysql-server.mysql.database.azure.com',
 #         'user':'AzureAdminNebuhan',
 #         'password':'86',
 #         'database':'etisalat_project'
 #     }
-# 
-#     # Attempt to establish database connection
+
+#     # Construct connection string
+
 #     try:
 #         sql_connection = mysql.connector.connect(**config)
 #         print("Connection established")
 #     except mysql.connector.Error as err:
-#         # Handle potential connection errors
 #         if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
 #             print("Something is wrong with the user name or password")
 #         elif err.errno == errorcode.ER_BAD_DB_ERROR:
 #             print("Database does not exist")
 #         else:
 #             print(err)
-# 
-#     # Execute SQL query and load results into a pandas DataFrame
+
 #     data = pd.read_sql(
 #         query,
 #         sql_connection
 #     )
-# 
+
 #     return data
 
-# Set the header for the Streamlit application
 st.header("🛢️ Raw Data as in Database")
 
-# Load the data using the defined function
 IPV4_IPV6_df = load_data()
 
-# Display the loaded DataFrame in the Streamlit app
 st.dataframe(IPV4_IPV6_df)
 
-# Create a detailed markdown section explaining the data extraction approach
 st.markdown("""
 # Data Extraction and Insertion Approach
 
@@ -66,7 +55,7 @@ st.markdown("""
 Extract data from the .rr files, which contain command-line output, into a structured format suitable for insertion into a MySQL database.
 
 **Initial Attempts:**
-I initially tried using pandas libraries like `read_csv()` and `read_fwf()`, among other tools, to extract the tabular data directly. However, these tools partially parsed the data, and the required format wasn't achieved.
+I initially tried using pandas libraries like `read_csv()` and `read_fwf()`, among other tools, to extract the tabular data directly. However, these tools partially parsed the data, and the required format wasn’t achieved.
 
 **Solution:**
 Due to the inadequacy of the existing tools, I wrote a custom Python program to accurately parse each line from the file and retrieve the necessary data. The program then adds this data to the database.
@@ -103,7 +92,7 @@ This approach ensured precise extraction and insertion of routing data into the 
 
 ## Code
 
-Here's a snippet of the Python code used to achieve this:
+Here’s a snippet of the Python code used to achieve this:
 
 ```python
 # Import required MySQL connector for database operations
@@ -153,9 +142,72 @@ with open(file_name, "r") as file:
             weight = ""     # Store weight
             path = ""       # Store AS path
 
-            # Parsing logic for extracting different BGP attributes
-            # (Detailed parsing logic as in the original code)
-            ...
+            # Initialize index for character-by-character parsing
+            index = 3
+            
+            # Extract network prefix (first field after "*")
+            while index < len(parsed_line) and not parsed_line[index].isspace():
+                network += parsed_line[index]
+                index += 1
+            
+            # Skip whitespace after network prefix
+            while index < len(parsed_line) and parsed_line[index].isspace():
+                index += 1
+            
+            # Extract next hop address
+            while index < len(parsed_line) and not parsed_line[index].isspace():
+                next_hop += parsed_line[index]
+                index += 1
+            
+            # Count whitespace to determine if metric exists
+            white_space_count = 0
+            while index < len(parsed_line) and parsed_line[index].isspace():
+                white_space_count += 1
+                index += 1
+            
+            # Handle metric field - set to None if large whitespace (missing metric)
+            if white_space_count > 15:
+                metric = None
+            else:
+                metric_string = ""
+                # Extract metric value
+                while index < len(parsed_line) and not parsed_line[index].isspace():
+                    metric_string += parsed_line[index]
+                    index += 1
+                else:
+                    metric = int(metric_string)  # Convert metric to integer
+            
+            # Skip whitespace after metric
+            while index < len(parsed_line) and parsed_line[index].isspace():
+                index += 1
+
+            # Extract local preference value
+            while index < len(parsed_line) and not parsed_line[index].isspace():
+                locprf += parsed_line[index]
+                index += 1
+            
+            # Skip whitespace after local preference
+            while index < len(parsed_line) and parsed_line[index].isspace():
+                index += 1
+
+            # Extract weight value
+            while index < len(parsed_line) and not parsed_line[index].isspace():
+                weight += parsed_line[index]
+                index += 1
+
+            # Skip whitespace after weight
+            while index < len(parsed_line) and parsed_line[index].isspace():
+                index += 1
+
+            # Extract AS path (remaining string)
+            path = parsed_line[index:].strip() 
+
+            # Prepare tuple of values for database insertion
+            val = (network.strip(), next_hop.strip(), metric, locprf.strip(), weight.strip(), path.strip())
+
+            # Execute SQL insert query with extracted values
+            mycursor.execute(sql_query, val)
+            count += mycursor.rowcount
 
 # Commit all database insertions
 mydb.commit()
@@ -165,4 +217,9 @@ print(count, "record inserted.")
 mycursor.close()
 mydb.close()
 ```
-            """)
+
+""")
+
+
+
+
