@@ -137,6 +137,7 @@ with st.expander("Basic Data Analysis"):
     st.subheader('DataFrame Shape')
     st.write(IPV4_IPV6_df.shape)
 
+
     # Redirect the output of IPV4_IPV6_df.info() to a string 
     buffer = io.StringIO() 
     IPV4_IPV6_df.info(buf=buffer) 
