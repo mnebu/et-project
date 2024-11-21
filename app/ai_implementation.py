@@ -1,20 +1,16 @@
-# Import required libraries
-import streamlit as st           # Web application framework
-import pandas as pd              # Data manipulation and analysis
-import plotly.express as px      # Interactive data visualization
+import streamlit as st
+import pandas as pd
+import plotly.express as px
 
-# Function to load AI analysis results from CSV
 def load_ai_results():
-    # Read the CSV file containing anomaly detection results
     data = pd.read_csv("data/ai_results.csv")
     return data
 
-# Set the title of the Streamlit web application
+# Title of the app
 st.title("Anomaly Detection in Network Data")
 
-# Create an expandable section explaining the approach
+# Description of the approach inside an expander
 with st.expander("See Approach to Solution"):
-    # Markdown text detailing the anomaly detection methodology
     st.markdown("""
     ## Approach to Solution
 
@@ -51,58 +47,50 @@ with st.expander("See Approach to Solution"):
     This comprehensive approach ensures accurate detection and effective visualization of anomalies in network routing data, providing valuable insights for maintaining and improving network performance.
     """)
 
-# Load the AI results data
+
+# Read the CSV file into a DataFrame
 df = load_ai_results()
 
-# Display data cleaning information
 st.write("Data Cleaning:")
 st.write("\t1. Only Data with IP prefixes from transit providers is considered")
 st.write("\t2. Data with null Metric values where removed")
 
-# Display total number of prefixes after cleaning
 st.write(f" Total Number of prefixes after data cleaning: *{len(df)}*")
 
-# Filter and count normal prefixes
 normal_prefixes = df[df['Anomaly'] == 'Normal']
 st.write(f" Normal Prefixes: *{len(normal_prefixes)}*")
 
-# Filter and count anomalous prefixes
 anomalous_prefixes = df[df['Anomaly'] == 'Anomaly']
 st.write(f" Anomalous Prefixes: *{len(anomalous_prefixes)}*")
 
-# Add a subheader for results
 st.subheader("_Results_")
 
-# Create first interactive scatter plot: Hop Count vs LocPrf
+# Create an interactive scatter plot
 fig = px.scatter(df, x='hop_count', y='LocPrf', color='Anomaly',
-                 # Color mapping for anomaly and normal data points
                  color_discrete_map={'Anomaly': 'red', 'Normal': 'blue'},
-                 # Custom labels for axes and legend
                  labels={'Next Hop': 'Next Hop', 'Metric': 'Metric', 'LocPrf': 'LocPrf', 'hop_count': 'Hop Count', 'Anomaly': 'Data Type'},
                  title='Anomaly vs. Normal Data Points')
 
-# Update legend title
+# Update legend titles
 fig.update_layout(legend_title_text='Data Type')
 
-# Display the first Plotly figure in Streamlit
+# Display the Plotly figure in Streamlit
 st.plotly_chart(fig)
 
-# Create second interactive scatter plot: Hop Count vs Transit AS
+
+# Create an interactive scatter plot
 fig = px.scatter(df, x='hop_count', y='transit_as', color='Anomaly',
-                 # Color mapping for anomaly and normal data points
                  color_discrete_map={'Anomaly': 'red', 'Normal': 'blue'},
-                 # Custom labels for axes
                  labels={'transit_as': 'Transit AS', 'hop_count': 'Hop Count'},
                  title='Anomaly vs. Normal Data Points')
 
-# Update legend title
+# Update legend titles
 fig.update_layout(legend_title_text='Data Type')
 
-# Display the second Plotly figure in Streamlit
+# Display the Plotly figure in Streamlit
 st.plotly_chart(fig)
 
-# Add a subheader for tabular view
 st.subheader("Anomaly Detection Results - _Tabular View_ ")
 
-# Display the entire DataFrame
+# Display the DataFrame
 st.dataframe(df)
